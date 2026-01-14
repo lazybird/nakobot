@@ -23,14 +23,29 @@ def main():
         print(f"Found {len(tasks)} tasks.")
 
         for task in tasks:
-            message = task["message"]
+            content = task["content"]
             row = task["row"]
+            msg_type = task["type"]
 
-            print(f"Processing row {row}: Sending message...")
-            telegram.send_message(message)
+            print(f"Processing row {row} (Type: {msg_type})...")
 
-            print(f"Marking row {row} as sent...")
-            sheets.mark_as_sent(row)
+            try:
+                if msg_type in ["image", "photo"]:
+                    telegram.send_photo(content)
+                elif msg_type == "video":
+                    telegram.send_video(content)
+                elif msg_type == "youtube":
+                    telegram.send_youtube(content)
+                else:
+                    # Default to text
+                    telegram.send_message(content)
+
+                print(f"Marking row {row} as sent...")
+                sheets.mark_as_sent(row)
+
+            except Exception as e:
+                print(f"Failed to process row {row}: {e}")
+                # Continue to next task instead of crashing entirely
 
         print("All tasks processed.")
 

@@ -34,17 +34,32 @@ class SheetsService:
         Retrieves all rows where:
         - Date d'envoi (Col A) == Today (YYYY-MM-DD or DD/MM/YYYY)
         - Statut (Col C) == 'À envoyer'
-        Returns a list of dicts with row index and message.
+        Returns a list of dicts with row index, message, and type.
         """
-        all_records = self.sheet.get_all_records()
-        # Note: gspread get_all_records returns a list of dicts.
-        # We need to filter manually.
-        # However, to update the status, we need the row number.
-        # Using get_all_values might be safer to track row indices (1-based).
-
         rows = self.sheet.get_all_values()
-        header = rows[0]  # Assuming first row is header: Date, Message, Statut
+        if not rows:
+            return []
+
+        header = [h.lower() for h in rows[0]]
         data_rows = rows[1:]
+
+        # Dynamic column finding
+        try:
+            date_col_idx = next(i for i, h in enumerate(header) if "date" in h)
+            status_col_idx = next(i for i, h in enumerate(header) if "statut" in h)
+            # Support 'message' or 'contenu'
+            content_col_idx = next(
+                i for i, h in enumerate(header) if "message" in h or "contenu" in h
+            )
+        except StopIteration:
+            print("Error: Required columns (Date, Statut, Message/Contenu) not found.")
+            return []
+
+        # Optional Type column
+        try:
+            type_col_idx = next(i for i, h in enumerate(header) if "type" in h)
+        except StopIteration:
+            type_col_idx = None
 
         due_tasks = []
 
@@ -57,19 +72,28 @@ class SheetsService:
             # Row index in sheet is i + 2 (1 for header, 1 for 0-index)
             row_idx = i + 2
 
-            # SAFEGUARD: Ensure row has enough columns
-            if len(row) < 3:
+            # SAFEGUARD: Ensure row has enough columns for required fields
+            max_idx = max(date_col_idx, status_col_idx, content_col_idx)
+            if len(row) <= max_idx:
                 continue
 
-            date_str = row[0]
-            message = row[1]
-            status = row[2]
+            date_str = row[date_col_idx]
+            content = row[content_col_idx]
+            status = row[status_col_idx]
+
+            task_type = "text"
+            if type_col_idx is not None and len(row) > type_col_idx:
+                val = row[type_col_idx].strip().lower()
+                if val:
+                    task_type = val
 
             # Check date (support ISO and FR formats)
             is_today = (date_str == today) or (date_str == today_fr)
 
             if is_today and status == "À envoyer":
-                due_tasks.append({"row": row_idx, "message": message})
+                due_tasks.append(
+                    {"row": row_idx, "content": content, "type": task_type}
+                )
 
         return due_tasks
 
