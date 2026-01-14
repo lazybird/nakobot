@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 venv/
 *.json
+credentials.json
+dokploy_env_vars.txt
