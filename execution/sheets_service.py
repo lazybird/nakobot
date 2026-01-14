@@ -92,11 +92,16 @@ class SheetsService:
 
             if is_today and status == "À envoyer":
                 due_tasks.append(
-                    {"row": row_idx, "content": content, "type": task_type}
+                    {
+                        "row": row_idx,
+                        "content": content,
+                        "type": task_type,
+                        "status_col": status_col_idx + 1,  # 1-based index for gspread
+                    }
                 )
 
         return due_tasks
 
-    def mark_as_sent(self, row_index):
-        """Updates the status column (Col C, index 3) to 'Envoyé'."""
-        self.sheet.update_cell(row_index, 3, "Envoyé")
+    def mark_as_sent(self, row_index, col_index):
+        """Updates the status column to 'Envoyé'."""
+        self.sheet.update_cell(row_index, col_index, "Envoyé")

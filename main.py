@@ -26,6 +26,7 @@ def main():
             content = task["content"]
             row = task["row"]
             msg_type = task["type"]
+            status_col = task["status_col"]
 
             print(f"Processing row {row} (Type: {msg_type})...")
 
@@ -41,7 +42,7 @@ def main():
                     telegram.send_message(content)
 
                 print(f"Marking row {row} as sent...")
-                sheets.mark_as_sent(row)
+                sheets.mark_as_sent(row, status_col)
 
             except Exception as e:
                 print(f"Failed to process row {row}: {e}")
