@@ -26,4 +26,5 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Reset the entrypoint, don't invoke `uv`
 ENTRYPOINT []
 
-CMD ["python", "main.py"]
+# Keep container running for Dokploy Cron
+CMD ["tail", "-f", "/dev/null"]
