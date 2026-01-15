@@ -102,3 +102,45 @@ class TelegramService:
         except Exception as e:
             print(f"Failed to send YouTube link: {e}")
             raise
+
+    def send_audio(self, audio_url: str, caption: str = None):
+        """
+        Send an audio file from a URL.
+
+        Args:
+            audio_url: The URL of the audio file
+            caption: Optional caption for the audio
+        """
+        try:
+            sanitized_caption = self.sanitize_markdown(caption) if caption else None
+            self.bot.send_audio(
+                self.chat_id,
+                audio_url,
+                caption=sanitized_caption,
+                parse_mode="MarkdownV2" if sanitized_caption else None,
+            )
+            print(f"Audio sent to {self.chat_id}: {audio_url}")
+        except Exception as e:
+            print(f"Failed to send audio: {e}")
+            raise
+
+    def send_document(self, document_url: str, caption: str = None):
+        """
+        Send a document (e.g., PDF) from a URL.
+
+        Args:
+            document_url: The URL of the document
+            caption: Optional caption for the document
+        """
+        try:
+            sanitized_caption = self.sanitize_markdown(caption) if caption else None
+            self.bot.send_document(
+                self.chat_id,
+                document_url,
+                caption=sanitized_caption,
+                parse_mode="MarkdownV2" if sanitized_caption else None,
+            )
+            print(f"Document sent to {self.chat_id}: {document_url}")
+        except Exception as e:
+            print(f"Failed to send document: {e}")
+            raise

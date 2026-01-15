@@ -37,6 +37,10 @@ def main():
                     telegram.send_video(content)
                 elif msg_type == "youtube":
                     telegram.send_youtube(content)
+                elif msg_type == "audio":
+                    telegram.send_audio(content)
+                elif msg_type in ["pdf", "document", "file"]:
+                    telegram.send_document(content)
                 else:
                     # Default to text
                     telegram.send_message(content)
