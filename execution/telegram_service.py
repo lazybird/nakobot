@@ -266,3 +266,67 @@ class TelegramService:
         except Exception as e:
             print(f"Failed to send document: {e}")
             raise
+
+    def send_smart(self, content: str, caption: str = None, type_hint: str = None):
+        """
+        Send content by automatically detecting its type.
+        Converts Google Drive view links to download links automatically.
+        """
+        if not content:
+            return
+
+        # 1. Google Drive Link Conversion
+        # Convert https://drive.google.com/file/d/ID/view... to uc?export=download&id=ID
+        drive_match = re.search(r"drive\.google\.com/file/d/([^//?]+)", content)
+        if drive_match:
+            file_id = drive_match.group(1)
+            content = f"https://drive.google.com/uc?export=download&id={file_id}"
+            print(f"Converted Google Drive link to: {content}")
+
+        # 2. YouTube Detection
+        if "youtube.com" in content or "youtu.be" in content:
+            return self.send_youtube(content, caption)
+
+        # 3. URL vs Text
+        if not isinstance(content, str) or not content.startswith(("http://", "https://")):
+            return self.send_message(content)
+
+        # 4. Use type_hint if provided and not "text"
+        if type_hint and type_hint not in ["text", "auto"]:
+            if type_hint in ["image", "photo"]:
+                return self.send_photo(content, caption)
+            elif type_hint == "video":
+                return self.send_video(content, caption)
+            elif type_hint == "audio":
+                return self.send_audio(content, caption)
+            elif type_hint in ["pdf", "document", "file"]:
+                return self.send_document(content, caption)
+
+        # 5. Auto-detection via response headers
+        try:
+            print(f"Auto-detecting type for {content}...")
+            session = requests.Session()
+            session.headers.update({
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            })
+            response = session.get(content, stream=True, timeout=10)
+            content_type = response.headers.get("Content-Type", "").lower()
+            
+            if "image" in content_type:
+                return self.send_photo(content, caption)
+            elif "video" in content_type:
+                return self.send_video(content, caption)
+            elif "audio" in content_type:
+                return self.send_audio(content, caption)
+            elif "application/pdf" in content_type:
+                return self.send_document(content, caption)
+            else:
+                # Check extension as fallback
+                ext = content.split("/")[-1].split("?")[0].lower()
+                if ext.endswith((".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".rar")):
+                    return self.send_document(content, caption)
+                # Default to sending as a text message with the link
+                return self.send_message(content)
+        except Exception as e:
+            print(f"Auto-detection failed for {content}: {e}. Sending as text.")
+            return self.send_message(content)

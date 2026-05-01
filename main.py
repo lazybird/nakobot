@@ -31,19 +31,8 @@ def main():
             print(f"Processing row {row} (Type: {msg_type})...")
 
             try:
-                if msg_type in ["image", "photo"]:
-                    telegram.send_photo(content)
-                elif msg_type == "video":
-                    telegram.send_video(content)
-                elif msg_type == "youtube":
-                    telegram.send_youtube(content)
-                elif msg_type == "audio":
-                    telegram.send_audio(content)
-                elif msg_type in ["pdf", "document", "file"]:
-                    telegram.send_document(content)
-                else:
-                    # Default to text
-                    telegram.send_message(content)
+                # Use smart sending which auto-detects type and converts Drive links
+                telegram.send_smart(content, type_hint=msg_type)
 
                 print(f"Marking row {row} as sent...")
                 sheets.mark_as_sent(row, status_col)

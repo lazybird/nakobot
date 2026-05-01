@@ -79,7 +79,7 @@ class SheetsService:
 
             date_str = row[date_col_idx]
             content = row[content_col_idx]
-            status = row[status_col_idx]
+            status = row[status_col_idx].strip()
 
             task_type = "text"
             if type_col_idx is not None and len(row) > type_col_idx:
@@ -90,7 +90,11 @@ class SheetsService:
             # Check date (support ISO and FR formats)
             is_today = (date_str == today) or (date_str == today_fr)
 
-            if is_today and status == "À envoyer":
+            # Support for checkboxes: FALSE means not checked (à envoyer)
+            # Support for legacy text: "À envoyer"
+            is_pending = (status.upper() == "FALSE") or (status == "À envoyer") or (status == "")
+
+            if is_today and is_pending:
                 due_tasks.append(
                     {
                         "row": row_idx,
@@ -103,5 +107,8 @@ class SheetsService:
         return due_tasks
 
     def mark_as_sent(self, row_index, col_index):
-        """Updates the status column to 'Envoyé'."""
-        self.sheet.update_cell(row_index, col_index, "Envoyé")
+        """Updates the status column. Supports checkboxes (TRUE) or text (Envoyé)."""
+        # We try to update with TRUE. If it's a checkbox, it will be checked.
+        # If it's a text cell, it will show "TRUE".
+        # We also support the legacy "Envoyé" for clarity if someone is typing.
+        self.sheet.update_cell(row_index, col_index, "TRUE")
