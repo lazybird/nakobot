@@ -2,6 +2,9 @@ import os
 import telebot
 import requests
 import io
+import re
+from urllib.parse import unquote
+from pdf2image import convert_from_bytes
 
 
 class TelegramService:
@@ -52,20 +55,50 @@ class TelegramService:
 
             file_io = io.BytesIO(data)
             
-            # Extract filename
+            # Extract filename more robustly
             filename = "file"
             content_disposition = response.headers.get("Content-Disposition", "")
-            if "filename=" in content_disposition:
-                filename = content_disposition.split("filename=")[1].strip("\"'")
-            else:
-                filename = url.split("/")[-1].split("?")[0] or "file"
             
-            # Ensure filename has an extension if possible or just use a default
+            # Try filename* (modern standard, handles UTF-8)
+            filename_utf8_match = re.search(r"filename\*=UTF-8''(.+)", content_disposition, re.IGNORECASE)
+            if filename_utf8_match:
+                filename = unquote(filename_utf8_match.group(1))
+            else:
+                # Try standard filename
+                filename_match = re.search(r'filename="?([^";]+)"?', content_disposition, re.IGNORECASE)
+                if filename_match:
+                    filename = filename_match.group(1)
+                    # Some servers send UTF-8 in filename= but don't encode it properly for headers
+                    # We try to decode it if it looks like it's been mangled (Latin-1 to UTF-8)
+                    try:
+                        filename = filename.encode('iso-8859-1').decode('utf-8')
+                    except (UnicodeEncodeError, UnicodeDecodeError):
+                        pass
+                else:
+                    filename = url.split("/")[-1].split("?")[0] or "file"
+            
+            # Ensure filename has an extension
             file_io.name = filename
             return file_io
         except Exception as e:
             print(f"Error downloading file {url}: {e}")
             return None
+
+    def _generate_pdf_thumbnail(self, pdf_bytes: bytes) -> io.BytesIO:
+        """Generate a thumbnail image from the first page of a PDF."""
+        try:
+            print("Generating thumbnail for PDF...")
+            # Convert first page to image
+            images = convert_from_bytes(pdf_bytes, first_page=1, last_page=1, size=(400, None))
+            if images:
+                thumb_io = io.BytesIO()
+                images[0].save(thumb_io, format="JPEG", quality=85)
+                thumb_io.seek(0)
+                thumb_io.name = "thumbnail.jpg"
+                return thumb_io
+        except Exception as e:
+            print(f"Failed to generate PDF thumbnail: {e}")
+        return None
 
     def sanitize_markdown(self, text: str) -> str:
         """Escape special characters for Telegram MarkdownV2."""
@@ -198,16 +231,27 @@ class TelegramService:
 
     def send_document(self, document_url: str, caption: str = None):
         """
-        Send a document. Downloads it first if it's a URL.
+        Send a document. Downloads it first if it's a URL and generates a thumbnail for PDFs.
         """
         try:
             sanitized_caption = self.sanitize_markdown(caption) if caption else None
             file_content = self._download_file(document_url)
             
             if file_content:
+                data = file_content.getvalue()
+                thumbnail = None
+                
+                # If it's a PDF, try to generate a thumbnail
+                if file_content.name.lower().endswith(".pdf"):
+                    thumbnail = self._generate_pdf_thumbnail(data)
+                
+                # Reset pointer for the document itself
+                file_content.seek(0)
+                
                 self.bot.send_document(
                     self.chat_id,
                     file_content,
+                    thumbnail=thumbnail,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
                 )

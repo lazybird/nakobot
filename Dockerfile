@@ -1,6 +1,11 @@
 FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
 WORKDIR /app
+ 
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
