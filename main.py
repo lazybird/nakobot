@@ -25,10 +25,9 @@ def main():
         for task in tasks:
             content = task["content"]
             row = task["row"]
-            msg_type = task["type"]
             status_col = task["status_col"]
 
-            print(f"Processing row {row} (Type: {msg_type})...")
+            print(f"Processing row {row}...")
 
             try:
                 # Always use smart sending (auto-detection) and ignore the 'type' column
