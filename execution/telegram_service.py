@@ -291,31 +291,78 @@ class TelegramService:
         if not isinstance(content, str) or not content.startswith(("http://", "https://")):
             return self.send_message(content)
 
-        # 4. Auto-detection via response headers
+        # 4. Try to download the file to detect its type more accurately
         try:
-            print(f"Auto-detecting type for {content}...")
-            session = requests.Session()
-            session.headers.update({
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            })
-            response = session.get(content, stream=True, timeout=10)
-            content_type = response.headers.get("Content-Type", "").lower()
+            print(f"Downloading {content} for type detection...")
+            file_io = self._download_file(content)
             
-            if "image" in content_type:
-                return self.send_photo(content, caption)
-            elif "video" in content_type:
-                return self.send_video(content, caption)
-            elif "audio" in content_type:
-                return self.send_audio(content, caption)
-            elif "application/pdf" in content_type:
-                return self.send_document(content, caption)
-            else:
-                # Check extension as fallback
-                ext = content.split("/")[-1].split("?")[0].lower()
-                if ext.endswith((".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".rar")):
-                    return self.send_document(content, caption)
-                # Default to sending as a text message with the link
+            if not file_io:
                 return self.send_message(content)
+            
+            filename = file_io.name.lower()
+            
+            # Check extension from the downloaded file name
+            if filename.endswith((".jpg", ".jpeg", ".png", ".webp")):
+                return self._send_photo_bytes(file_io, caption)
+            elif filename.endswith((".mp4", ".mov", ".avi", ".mkv")):
+                return self._send_video_bytes(file_io, caption)
+            elif filename.endswith((".mp3", ".ogg", ".wav", ".m4a")):
+                return self._send_audio_bytes(file_io, caption)
+            elif filename.endswith(".pdf"):
+                return self._send_document_bytes(file_io, caption)
+            elif "." in filename:
+                # Other files (doc, zip, etc.)
+                return self._send_document_bytes(file_io, caption)
+            else:
+                # Fallback: if we have content but no clear extension, try document
+                return self._send_document_bytes(file_io, caption)
+                
         except Exception as e:
-            print(f"Auto-detection failed for {content}: {e}. Sending as text.")
+            print(f"Smart detection/download failed for {content}: {e}. Sending as text.")
             return self.send_message(content)
+
+    def _send_photo_bytes(self, file_io: io.BytesIO, caption: str = None):
+        sanitized_caption = self.sanitize_markdown(caption) if caption else None
+        self.bot.send_photo(
+            self.chat_id,
+            file_io,
+            caption=sanitized_caption,
+            parse_mode="MarkdownV2" if sanitized_caption else None,
+        )
+        print(f"Photo bytes sent to {self.chat_id}")
+
+    def _send_video_bytes(self, file_io: io.BytesIO, caption: str = None):
+        sanitized_caption = self.sanitize_markdown(caption) if caption else None
+        self.bot.send_video(
+            self.chat_id,
+            file_io,
+            caption=sanitized_caption,
+            parse_mode="MarkdownV2" if sanitized_caption else None,
+        )
+        print(f"Video bytes sent to {self.chat_id}")
+
+    def _send_audio_bytes(self, file_io: io.BytesIO, caption: str = None):
+        sanitized_caption = self.sanitize_markdown(caption) if caption else None
+        self.bot.send_audio(
+            self.chat_id,
+            file_io,
+            caption=sanitized_caption,
+            parse_mode="MarkdownV2" if sanitized_caption else None,
+        )
+        print(f"Audio bytes sent to {self.chat_id}")
+
+    def _send_document_bytes(self, file_io: io.BytesIO, caption: str = None):
+        sanitized_caption = self.sanitize_markdown(caption) if caption else None
+        data = file_io.getvalue()
+        thumbnail = None
+        if file_io.name.lower().endswith(".pdf"):
+            thumbnail = self._generate_pdf_thumbnail(data)
+        file_io.seek(0)
+        self.bot.send_document(
+            self.chat_id,
+            file_io,
+            thumbnail=thumbnail,
+            caption=sanitized_caption,
+            parse_mode="MarkdownV2" if sanitized_caption else None,
+        )
+        print(f"Document bytes sent to {self.chat_id}")
