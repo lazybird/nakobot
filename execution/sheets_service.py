@@ -46,7 +46,7 @@ class SheetsService:
         # Dynamic column finding
         try:
             date_col_idx = next(i for i, h in enumerate(header) if "date" in h)
-            status_col_idx = next(i for i, h in enumerate(header) if "statut" in h)
+            status_col_idx = next(i for i, h in enumerate(header) if "statut" in h or "envoyé" in h)
             # Support 'message' or 'contenu'
             content_col_idx = next(
                 i for i, h in enumerate(header) if "message" in h or "contenu" in h
