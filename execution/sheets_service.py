@@ -55,12 +55,6 @@ class SheetsService:
             print("Error: Required columns (Date, Statut, Message/Contenu) not found.")
             return []
 
-        # Optional Type column
-        try:
-            type_col_idx = next(i for i, h in enumerate(header) if "type" in h)
-        except StopIteration:
-            type_col_idx = None
-
         due_tasks = []
 
         from datetime import datetime
@@ -81,12 +75,6 @@ class SheetsService:
             content = row[content_col_idx]
             status = row[status_col_idx].strip()
 
-            task_type = "text"
-            if type_col_idx is not None and len(row) > type_col_idx:
-                val = row[type_col_idx].strip().lower()
-                if val:
-                    task_type = val
-
             # Check date (support ISO and FR formats)
             is_today = (date_str == today) or (date_str == today_fr)
 
@@ -99,7 +87,6 @@ class SheetsService:
                     {
                         "row": row_idx,
                         "content": content,
-                        "type": task_type,
                         "status_col": status_col_idx + 1,  # 1-based index for gspread
                     }
                 )

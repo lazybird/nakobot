@@ -31,8 +31,8 @@ def main():
             print(f"Processing row {row} (Type: {msg_type})...")
 
             try:
-                # Use smart sending which auto-detects type and converts Drive links
-                telegram.send_smart(content, type_hint=msg_type)
+                # Always use smart sending (auto-detection) and ignore the 'type' column
+                telegram.send_smart(content)
 
                 print(f"Marking row {row} as sent...")
                 sheets.mark_as_sent(row, status_col)

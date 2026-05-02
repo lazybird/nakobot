@@ -267,7 +267,7 @@ class TelegramService:
             print(f"Failed to send document: {e}")
             raise
 
-    def send_smart(self, content: str, caption: str = None, type_hint: str = None):
+    def send_smart(self, content: str, caption: str = None):
         """
         Send content by automatically detecting its type.
         Converts Google Drive view links to download links automatically.
@@ -291,18 +291,7 @@ class TelegramService:
         if not isinstance(content, str) or not content.startswith(("http://", "https://")):
             return self.send_message(content)
 
-        # 4. Use type_hint if provided and not "text"
-        if type_hint and type_hint not in ["text", "auto"]:
-            if type_hint in ["image", "photo"]:
-                return self.send_photo(content, caption)
-            elif type_hint == "video":
-                return self.send_video(content, caption)
-            elif type_hint == "audio":
-                return self.send_audio(content, caption)
-            elif type_hint in ["pdf", "document", "file"]:
-                return self.send_document(content, caption)
-
-        # 5. Auto-detection via response headers
+        # 4. Auto-detection via response headers
         try:
             print(f"Auto-detecting type for {content}...")
             session = requests.Session()
