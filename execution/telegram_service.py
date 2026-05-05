@@ -11,6 +11,7 @@ class TelegramService:
     def __init__(self):
         self.token = os.environ.get("TELEGRAM_BOT_TOKEN")
         self.chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+        self.message_thread_id = os.environ.get("TELEGRAM_MESSAGE_THREAD_ID")
 
         if not self.token:
             raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set")
@@ -117,7 +118,12 @@ class TelegramService:
             parse_mode: Optional parse mode (e.g. 'MarkdownV2')
         """
         try:
-            self.bot.send_message(self.chat_id, message, parse_mode=parse_mode)
+            self.bot.send_message(
+                self.chat_id, 
+                message, 
+                parse_mode=parse_mode,
+                message_thread_id=self.message_thread_id
+            )
             print(f"Message sent to {self.chat_id}: {message}")
         except Exception as e:
             print(f"Failed to send message: {e}")
@@ -137,6 +143,7 @@ class TelegramService:
                     file_content,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
+                    message_thread_id=self.message_thread_id,
                 )
             else:
                 # Fallback to URL if download failed or it's not a URL
@@ -145,6 +152,7 @@ class TelegramService:
                     photo_url,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
+                    message_thread_id=self.message_thread_id,
                 )
             print(f"Photo sent to {self.chat_id}: {photo_url}")
         except Exception as e:
@@ -165,6 +173,7 @@ class TelegramService:
                     file_content,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
+                    message_thread_id=self.message_thread_id,
                 )
             else:
                 self.bot.send_video(
@@ -172,6 +181,7 @@ class TelegramService:
                     video_url,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
+                    message_thread_id=self.message_thread_id,
                 )
             print(f"Video sent to {self.chat_id}: {video_url}")
         except Exception as e:
@@ -197,6 +207,7 @@ class TelegramService:
                 self.chat_id,
                 message,
                 parse_mode="MarkdownV2" if sanitized_text else None,
+                message_thread_id=self.message_thread_id,
             )
             print(f"YouTube link sent to {self.chat_id}: {video_url}")
         except Exception as e:
@@ -217,6 +228,7 @@ class TelegramService:
                     file_content,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
+                    message_thread_id=self.message_thread_id,
                 )
             else:
                 self.bot.send_audio(
@@ -224,6 +236,7 @@ class TelegramService:
                     audio_url,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
+                    message_thread_id=self.message_thread_id,
                 )
             print(f"Audio sent to {self.chat_id}: {audio_url}")
         except Exception as e:
@@ -255,6 +268,7 @@ class TelegramService:
                     thumbnail=thumbnail,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
+                    message_thread_id=self.message_thread_id,
                 )
             else:
                 self.bot.send_document(
@@ -262,6 +276,7 @@ class TelegramService:
                     document_url,
                     caption=sanitized_caption,
                     parse_mode="MarkdownV2" if sanitized_caption else None,
+                    message_thread_id=self.message_thread_id,
                 )
             print(f"Document sent to {self.chat_id}: {document_url}")
         except Exception as e:
@@ -338,6 +353,7 @@ class TelegramService:
             file_io,
             caption=sanitized_caption,
             parse_mode="MarkdownV2" if sanitized_caption else None,
+            message_thread_id=self.message_thread_id,
         )
         print(f"Photo bytes sent to {self.chat_id}")
 
@@ -348,6 +364,7 @@ class TelegramService:
             file_io,
             caption=sanitized_caption,
             parse_mode="MarkdownV2" if sanitized_caption else None,
+            message_thread_id=self.message_thread_id,
         )
         print(f"Video bytes sent to {self.chat_id}")
 
@@ -358,6 +375,7 @@ class TelegramService:
             file_io,
             caption=sanitized_caption,
             parse_mode="MarkdownV2" if sanitized_caption else None,
+            message_thread_id=self.message_thread_id,
         )
         print(f"Audio bytes sent to {self.chat_id}")
 
@@ -374,5 +392,6 @@ class TelegramService:
             thumbnail=thumbnail,
             caption=sanitized_caption,
             parse_mode="MarkdownV2" if sanitized_caption else None,
+            message_thread_id=self.message_thread_id,
         )
         print(f"Document bytes sent to {self.chat_id}")
