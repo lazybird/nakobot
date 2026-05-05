@@ -79,6 +79,7 @@ class TelegramService:
             
             # Ensure filename has an extension
             file_io.name = filename
+            file_io.content_type = content_type
             return file_io
         except Exception as e:
             print(f"Error downloading file {url}: {e}")
@@ -299,6 +300,12 @@ class TelegramService:
             if not file_io:
                 return self.send_message(content)
             
+            # If it's HTML, it's a website, not a file to download
+            content_type = getattr(file_io, "content_type", "")
+            if "text/html" in content_type:
+                print(f"Content for {content} is HTML ({content_type}). Sending as message.")
+                return self.send_message(content)
+            
             filename = file_io.name.lower()
             
             # Check extension from the downloaded file name
@@ -315,6 +322,9 @@ class TelegramService:
                 return self._send_document_bytes(file_io, caption)
             else:
                 # Fallback: if we have content but no clear extension, try document
+                # But double check it's not actually text (in case content_type was missing)
+                if "text/plain" in content_type:
+                     return self.send_message(content)
                 return self._send_document_bytes(file_io, caption)
                 
         except Exception as e:
